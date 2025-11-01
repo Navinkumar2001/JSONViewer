@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JSONViewer - Smart JSON Visualizer & Converter</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ff6b35' stroke-width='2'%3E%3Cpath d='M5 3l3.09 12.68L12 17l3.91-1.32L19 3H5z'/%3E%3Cpath d='M7.5 7.5h9l-.5 2h-8l.5-2z'/%3E%3Cpath d='M8 10.5h8l-.5 2h-7l.5-2z'/%3E%3C/svg%3E" type="image/svg+xml">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/editor/editor.main.min.css">
     <link rel="stylesheet" href="styles.css">
@@ -90,6 +91,7 @@
                     <button class="view-btn" data-view="table">Table View</button>
                     <button class="view-btn" data-view="raw">Raw Output</button>
                     <button class="view-btn" data-view="schema">Schema</button>
+                    <button class="view-btn" data-view="query">Query</button>
                     <button class="view-btn" data-view="compare">Compare</button>
                 </div>
 
@@ -98,6 +100,7 @@
                     <div id="tableView" class="view-content"></div>
                     <div id="rawView" class="view-content"></div>
                     <div id="schemaView" class="view-content"></div>
+                    <div id="queryView" class="view-content"></div>
                     <div id="compareView" class="view-content"></div>
                 </div>
             </div>

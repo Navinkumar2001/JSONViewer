@@ -7,6 +7,7 @@ class JSONViewPro {
         this.currentMatchIndex = 0;
         this.originalEditor = null;
         this.compareEditor = null;
+        this.pathExplorer = null;
         this.init();
     }
 
@@ -18,6 +19,7 @@ class JSONViewPro {
         this.setupDragAndDrop();
         this.loadSampleData();
         this.addInteractiveEffects();
+        this.setupPathExplorer();
     }
     
     addLoadingAnimation() {
@@ -71,6 +73,86 @@ class JSONViewPro {
         
         button.appendChild(ripple);
         setTimeout(() => ripple.remove(), 600);
+    }
+
+    setupPathExplorer() {
+        this.pathExplorer = document.createElement('div');
+        this.pathExplorer.className = 'path-explorer';
+        this.pathExplorer.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-primary);
+            z-index: 999;
+            transform: translateY(100%);
+            transition: all 0.3s ease;
+            max-width: 400px;
+            word-break: break-all;
+            display: none;
+        `;
+        
+        document.body.appendChild(this.pathExplorer);
+    }
+
+    showPath(path, element) {
+        const rect = element.getBoundingClientRect();
+        
+        this.pathExplorer.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="color: var(--accent-cyan); font-weight: 600;">Path:</span>
+                <code style="background: var(--bg-secondary); padding: 0.25rem 0.5rem; border-radius: 4px; flex: 1;">${path}</code>
+                <button onclick="navigator.clipboard.writeText('${path}'); this.style.color='#10b981'; this.textContent='✓'; setTimeout(() => { this.style.color='var(--text-primary)'; this.textContent='📋'; }, 1000)" 
+                        style="background: none; border: none; cursor: pointer; font-size: 1rem; padding: 0.25rem; color: var(--text-primary); transition: color 0.2s ease;">📋</button>
+            </div>
+        `;
+        
+        this.pathExplorer.style.cssText = `
+            position: fixed;
+            left: ${rect.left}px;
+            top: ${rect.top - 75}px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-primary);
+            z-index: 999;
+            max-width: 400px;
+            word-break: break-all;
+            display: block;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 245, 255, 0.2);
+            transform: translateY(-10px) scale(0.9);
+            opacity: 0;
+            transition: all 0.3s ease;
+        `;
+        
+        setTimeout(() => {
+            this.pathExplorer.style.transform = 'translateY(0) scale(1)';
+            this.pathExplorer.style.opacity = '1';
+        }, 10);
+        
+        // Auto hide after 3 seconds
+        clearTimeout(this.pathTimeout);
+        this.pathTimeout = setTimeout(() => {
+            this.hidePath();
+        }, 3000);
+    }
+
+    hidePath() {
+        this.pathExplorer.style.transform = 'translateY(-10px) scale(0.9)';
+        this.pathExplorer.style.opacity = '0';
+        setTimeout(() => {
+            this.pathExplorer.style.display = 'none';
+        }, 300);
     }
 
     initMonacoEditor() {
@@ -376,6 +458,8 @@ class JSONViewPro {
                 this.renderRawView();
             } else if (this.currentView === 'schema') {
                 this.renderSchemaView();
+            } else if (this.currentView === 'query') {
+                this.renderQueryView();
             } else if (this.currentView === 'compare') {
                 this.renderCompareView();
             }
@@ -391,55 +475,77 @@ class JSONViewPro {
         this.setupTreeToggle();
     }
 
-    createTreeHTML(obj, level = 0) {
-        if (obj === null) return '<span class="json-null">null</span>';
-        if (typeof obj === 'string') return `<span class="json-string">"${obj}"</span>`;
-        if (typeof obj === 'number') return `<span class="json-number">${obj}</span>`;
-        if (typeof obj === 'boolean') return `<span class="json-boolean">${obj}</span>`;
+    createTreeHTML(obj, level = 0, path = '$', textPath = '') {
+        const displayPath = textPath || path;
+        
+        if (obj === null) return `<span class="json-null json-clickable" data-path="${displayPath}" title="Type: null">null</span>`;
+        if (typeof obj === 'string') {
+            const preview = obj.length > 50 ? obj.substring(0, 50) + '...' : obj;
+            return `<span class="json-string json-clickable" data-path="${displayPath}" title="Type: string | Length: ${obj.length}">"${preview}"</span>`;
+        }
+        if (typeof obj === 'number') {
+            const type = Number.isInteger(obj) ? 'integer' : 'float';
+            return `<span class="json-number json-clickable" data-path="${displayPath}" title="Type: ${type}">${obj}</span>`;
+        }
+        if (typeof obj === 'boolean') return `<span class="json-boolean json-clickable" data-path="${displayPath}" title="Type: boolean">${obj}</span>`;
         
         if (Array.isArray(obj)) {
-            if (obj.length === 0) return '<span class="json-array">[]</span>';
+            if (obj.length === 0) return `<span class="json-array json-clickable" data-path="${displayPath}" title="Empty array">[]</span>`;
             
             let html = '<div class="json-node">';
             html += '<span class="json-toggle">▼</span>';
-            html += '<span class="json-bracket">[</span>';
+            html += `<span class="json-bracket json-clickable" data-path="${displayPath}" title="Array with ${obj.length} items">[</span>`;
             html += `<span class="json-collapsed" style="display:none;"><span class="json-count">${obj.length} items</span></span>`;
             html += '<div class="json-children">';
             
             obj.forEach((item, index) => {
+                const itemPath = `${path}[${index}]`;
+                let itemTextPath = displayPath;
+                
+                if (typeof item === 'object' && item !== null) {
+                    const identifier = item.name || item.id || item.title || item.key || index;
+                    itemTextPath = displayPath ? `${displayPath}[${identifier}]` : `[${identifier}]`;
+                } else {
+                    itemTextPath = displayPath ? `${displayPath}[${index}]` : `[${index}]`;
+                }
+                
                 html += '<div class="json-item">';
-                html += `<span class="json-index">${index}:</span> `;
-                html += this.createTreeHTML(item, level + 1);
+                html += `<span class="json-index json-clickable" data-path="${itemTextPath}" title="Array index: ${index}">${index}:</span> `;
+                html += this.createTreeHTML(item, level + 1, itemPath, itemTextPath);
                 if (index < obj.length - 1) html += '<span class="json-comma">,</span>';
                 html += '</div>';
             });
             
             html += '</div>';
-            html += '<span class="json-bracket">]</span>';
+            html += `<span class="json-bracket json-clickable" data-path="${displayPath}">]</span>`;
             html += '</div>';
             return html;
         }
         
         if (typeof obj === 'object') {
             const keys = Object.keys(obj);
-            if (keys.length === 0) return '<span class="json-object">{}</span>';
+            if (keys.length === 0) return `<span class="json-object json-clickable" data-path="${displayPath}" title="Empty object">{}</span>`;
             
             let html = '<div class="json-node">';
             html += '<span class="json-toggle">▼</span>';
-            html += '<span class="json-bracket">{</span>';
+            html += `<span class="json-bracket json-clickable" data-path="${displayPath}" title="Object with ${keys.length} properties">{</span>`;
             html += `<span class="json-collapsed" style="display:none;"><span class="json-count">${keys.length} keys</span></span>`;
             html += '<div class="json-children">';
             
             keys.forEach((key, index) => {
+                const keyPath = path === '$' ? `$.${key}` : `${path}.${key}`;
+                const keyTextPath = displayPath ? `${displayPath}.${key}` : key;
+                const valueType = typeof obj[key];
+                
                 html += '<div class="json-item">';
-                html += `<span class="json-key">"${key}"</span>: `;
-                html += this.createTreeHTML(obj[key], level + 1);
+                html += `<span class="json-key json-clickable" data-path="${keyTextPath}" title="Property: ${key} | Type: ${valueType}">"${key}"</span>: `;
+                html += this.createTreeHTML(obj[key], level + 1, keyPath, keyTextPath);
                 if (index < keys.length - 1) html += '<span class="json-comma">,</span>';
                 html += '</div>';
             });
             
             html += '</div>';
-            html += '<span class="json-bracket">}</span>';
+            html += `<span class="json-bracket json-clickable" data-path="${displayPath}">}</span>`;
             html += '</div>';
             return html;
         }
@@ -459,6 +565,22 @@ class JSONViewPro {
                     children.style.display = isCollapsed ? 'block' : 'none';
                     collapsed.style.display = isCollapsed ? 'none' : 'inline';
                     e.target.textContent = isCollapsed ? '▼' : '▶';
+                }
+            });
+        });
+        
+        // Add path explorer click handlers
+        document.querySelectorAll('.json-clickable').forEach(element => {
+            element.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const path = e.target.getAttribute('data-path');
+                if (path) {
+                    this.showPath(path, e.target);
+                    // Add visual feedback
+                    e.target.style.background = 'rgba(0, 245, 255, 0.2)';
+                    setTimeout(() => {
+                        e.target.style.background = '';
+                    }, 300);
                 }
             });
         });
@@ -906,6 +1028,99 @@ class JSONViewPro {
         container.innerHTML = html;
     }
     
+    renderQueryView() {
+        const container = document.getElementById('queryView');
+        container.innerHTML = `
+            <div class="query-builder">
+                <div class="query-input-section">
+                    <label>JSONPath Query:</label>
+                    <input type="text" id="queryInput" placeholder="$.personalInfo.name" class="query-input">
+                    <button id="runQuery" class="btn btn-primary">Run Query</button>
+                </div>
+                <div class="query-examples">
+                    <h4>Quick Examples:</h4>
+                    <div class="example-queries">
+                        <button class="example-btn" data-query="$.personalInfo.name">Get Name</button>
+                        <button class="example-btn" data-query="$.skills[*]">All Skills</button>
+                        <button class="example-btn" data-query="$..name">All Names</button>
+                        <button class="example-btn" data-query="$.experience[0].company">First Company</button>
+                    </div>
+                </div>
+                <div class="query-results" id="queryResults">
+                    <p>Enter a JSONPath query above to extract data from your JSON.</p>
+                </div>
+            </div>
+        `;
+        
+        // Add event listeners
+        document.getElementById('runQuery').addEventListener('click', this.executeQuery.bind(this));
+        document.getElementById('queryInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.executeQuery();
+        });
+        
+        document.querySelectorAll('.example-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const query = e.target.getAttribute('data-query');
+                document.getElementById('queryInput').value = query;
+                this.executeQuery();
+            });
+        });
+    }
+    
+    executeQuery() {
+        const query = document.getElementById('queryInput').value.trim();
+        const resultsContainer = document.getElementById('queryResults');
+        
+        if (!query || !this.jsonData) {
+            resultsContainer.innerHTML = '<p>Please enter a query and ensure JSON data is loaded.</p>';
+            return;
+        }
+        
+        try {
+            const result = this.evaluateJSONPath(query, this.jsonData);
+            resultsContainer.innerHTML = `
+                <div class="query-result-header">
+                    <h4>Query Result:</h4>
+                    <button onclick="navigator.clipboard.writeText('${JSON.stringify(result, null, 2)}')" class="btn btn-secondary">Copy Result</button>
+                </div>
+                <pre class="query-result-content">${JSON.stringify(result, null, 2)}</pre>
+            `;
+        } catch (error) {
+            resultsContainer.innerHTML = `<div class="query-error">Error: ${error.message}</div>`;
+        }
+    }
+    
+    evaluateJSONPath(path, data) {
+        // Simple JSONPath evaluator for basic queries
+        if (path === '$') return data;
+        
+        const parts = path.replace(/^\$\.?/, '').split(/[.\[\]]/).filter(p => p);
+        let result = data;
+        
+        for (const part of parts) {
+            if (part === '*') {
+                if (Array.isArray(result)) {
+                    result = result.flat();
+                } else if (typeof result === 'object') {
+                    result = Object.values(result);
+                }
+            } else if (part.includes('*')) {
+                // Handle wildcard in arrays
+                if (Array.isArray(result)) {
+                    result = result.map(item => item[part.replace('*', '')]);
+                }
+            } else if (!isNaN(part)) {
+                result = result[parseInt(part)];
+            } else {
+                result = result[part];
+            }
+            
+            if (result === undefined) break;
+        }
+        
+        return result;
+    }
+
     renderCompareView() {
         const container = document.getElementById('compareView');
         container.innerHTML = '<div class="compare-results"><p>Use the Compare button to compare two JSON objects.</p></div>';
