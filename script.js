@@ -935,6 +935,8 @@ class JSONViewPro {
             return;
         }
         
+        let hasMatches = false;
+        
         // Search in Monaco editor
         if (this.editor) {
             const model = this.editor.getModel();
@@ -944,17 +946,24 @@ class JSONViewPro {
             if (this.searchMatches.length > 0) {
                 this.showSearchNavigation(this.searchMatches.length);
                 this.navigateToMatch(0);
+                hasMatches = true;
             } else {
                 document.getElementById('searchNavigation').style.display = 'none';
-                this.showNotification('No matches found', 'info');
             }
         }
         
         // Search in views
         if (this.currentView === 'tree') {
-            this.searchInTreeView(query);
+            const treeMatches = this.searchInTreeView(query);
+            hasMatches = hasMatches || treeMatches;
         } else if (this.currentView === 'raw') {
-            this.searchInRawView(query);
+            const rawMatches = this.searchInRawView(query);
+            hasMatches = hasMatches || rawMatches;
+        }
+        
+        // Show notification only if no matches found anywhere
+        if (!hasMatches) {
+            this.showNotification('No matches found', 'info');
         }
     }
     
@@ -998,11 +1007,13 @@ class JSONViewPro {
         const container = document.getElementById('treeView');
         const items = container.querySelectorAll('.json-item, .json-key, .json-string, .json-number');
         let firstMatch = null;
+        let matchCount = 0;
         
         items.forEach(item => {
             item.classList.remove('search-highlight');
             if (item.textContent.toLowerCase().includes(query.toLowerCase())) {
                 item.classList.add('search-highlight');
+                matchCount++;
                 if (!firstMatch) firstMatch = item;
             }
         });
@@ -1011,15 +1022,18 @@ class JSONViewPro {
         if (firstMatch) {
             firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
+        
+        return matchCount > 0;
     }
     
     searchInRawView(query) {
         const container = document.getElementById('rawView');
         const pre = container.querySelector('pre');
-        if (!pre) return;
+        if (!pre) return false;
         
         const text = pre.textContent;
         const regex = new RegExp(`(${query})`, 'gi');
+        const matches = text.match(regex);
         const highlightedText = text.replace(regex, '<mark class="search-match">$1</mark>');
         pre.innerHTML = highlightedText;
         
@@ -1028,26 +1042,38 @@ class JSONViewPro {
         if (firstMatch) {
             firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
+        
+        return matches && matches.length > 0;
     }
 
     showNotification(message, type = 'info') {
         const notification = document.createElement('div');
         notification.className = `notification notification-${type}`;
         notification.textContent = message;
+        
+        const colors = {
+            success: { bg: 'rgba(16, 185, 129, 0.15)', border: 'rgba(16, 185, 129, 0.3)', glow: '0 0 20px rgba(16, 185, 129, 0.4)' },
+            error: { bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.3)', glow: '0 0 20px rgba(239, 68, 68, 0.4)' },
+            info: { bg: 'rgba(0, 245, 255, 0.15)', border: 'rgba(0, 245, 255, 0.3)', glow: '0 0 20px rgba(0, 245, 255, 0.4)' }
+        };
+        
+        const color = colors[type] || colors.info;
+        
         notification.style.cssText = `
             position: fixed;
             top: 20px;
             right: 20px;
             padding: 1rem 1.5rem;
-            background: var(--glass-bg);
+            background: ${color.bg};
             backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
+            border: 1px solid ${color.border};
             border-radius: 12px;
             color: var(--text-primary);
             z-index: 1000;
             transform: translateX(100%);
             transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), ${color.glow};
+            font-weight: 500;
         `;
         
         document.body.appendChild(notification);
@@ -1102,17 +1128,7 @@ const additionalStyles = `
     word-wrap: break-word;
 }
 
-.notification-success {
-    border-left: 4px solid #10b981;
-}
 
-.notification-error {
-    border-left: 4px solid #ef4444;
-}
-
-.notification-info {
-    border-left: 4px solid var(--accent-cyan);
-}
 
 .search-highlight {
     background: rgba(0, 245, 255, 0.2);
