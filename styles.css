@@ -383,6 +383,106 @@ body::before {
   }
 }
 
+/* Footer */
+.footer {
+  text-align: center;
+  padding: 1rem;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid var(--glass-border);
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+/* Compare Modal */
+.compare-modal {
+  max-width: 90vw;
+  width: 1200px;
+  max-height: 90vh;
+}
+
+.compare-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin: 1rem 0;
+  height: 500px;
+}
+
+.compare-panel h4 {
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.compare-panel > div {
+  height: 450px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.compare-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+/* Compare Results */
+.compare-results {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.diff-added {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.diff-removed {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.diff-modified {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.diff-summary {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.diff-stats {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.8rem;
+}
+
+.diff-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.diff-stat-added { color: #10b981; }
+.diff-stat-removed { color: #ef4444; }
+.diff-stat-modified { color: #f59e0b; }
+
 .header-controls {
   display: flex;
   gap: 0.75rem;
@@ -544,6 +644,11 @@ body::before {
   box-shadow: var(--shadow-soft);
   transform: scale(0.9);
   transition: transform 0.3s ease;
+}
+
+.compare-modal {
+  max-width: 80vw;
+  width: 80%;
 }
 
 .modal-overlay.active .modal-content {
@@ -927,6 +1032,19 @@ body::before {
   .bottom-toolbar {
     flex-wrap: wrap;
     justify-content: center;
+  }
+  
+  .compare-container {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  
+  .compare-panel > div {
+    height: 300px;
+  }
+  
+  .compare-modal {
+    width: 95vw;
   }
 }
 

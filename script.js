@@ -5,6 +5,8 @@ class JSONViewPro {
         this.jsonData = null;
         this.searchMatches = [];
         this.currentMatchIndex = 0;
+        this.originalEditor = null;
+        this.compareEditor = null;
         this.init();
     }
 
@@ -133,6 +135,7 @@ class JSONViewPro {
         document.getElementById('copyBtn').addEventListener('click', this.copyJSON.bind(this));
         document.getElementById('validateBtn').addEventListener('click', this.validateJSON.bind(this));
         document.getElementById('uploadBtn').addEventListener('click', this.openUploadModal.bind(this));
+        document.getElementById('compareBtn').addEventListener('click', this.openCompareModal.bind(this));
         
         // Modal controls
         document.getElementById('closeModal').addEventListener('click', this.closeUploadModal.bind(this));
@@ -154,6 +157,14 @@ class JSONViewPro {
         document.getElementById('wordWrap').addEventListener('change', this.updateSettings.bind(this));
         document.getElementById('autoValidate').addEventListener('change', this.updateSettings.bind(this));
         document.getElementById('showMinimap').addEventListener('change', this.updateSettings.bind(this));
+        
+        // Compare functionality
+        document.getElementById('closeCompare').addEventListener('click', this.closeCompareModal.bind(this));
+        document.getElementById('compareModal').addEventListener('click', (e) => {
+            if (e.target.id === 'compareModal') this.closeCompareModal();
+        });
+        document.getElementById('runCompare').addEventListener('click', this.runComparison.bind(this));
+        document.getElementById('swapCompare').addEventListener('click', this.swapCompareInputs.bind(this));
         
         // View toggles
         document.querySelectorAll('.view-btn').forEach(btn => {
@@ -366,6 +377,8 @@ class JSONViewPro {
                 this.renderRawView();
             } else if (this.currentView === 'schema') {
                 this.renderSchemaView();
+            } else if (this.currentView === 'compare') {
+                this.renderCompareView();
             }
         } catch (error) {
             // Invalid JSON - clear views
@@ -759,6 +772,144 @@ class JSONViewPro {
         }
         
         return html;
+    }
+    
+    openCompareModal() {
+        document.getElementById('compareModal').classList.add('active');
+        setTimeout(() => this.initCompareEditors(), 100);
+    }
+    
+    closeCompareModal() {
+        document.getElementById('compareModal').classList.remove('active');
+    }
+    
+    initCompareEditors() {
+        if (!this.originalEditor) {
+            this.originalEditor = monaco.editor.create(document.getElementById('originalEditor'), {
+                value: this.editor?.getValue() || '',
+                language: 'json',
+                theme: document.documentElement.getAttribute('data-theme') === 'light' ? 'vs' : 'vs-dark',
+                automaticLayout: true,
+                minimap: { enabled: false },
+                fontSize: 12,
+                lineNumbers: 'on'
+            });
+        }
+        
+        if (!this.compareEditor) {
+            this.compareEditor = monaco.editor.create(document.getElementById('compareEditor'), {
+                value: '',
+                language: 'json',
+                theme: document.documentElement.getAttribute('data-theme') === 'light' ? 'vs' : 'vs-dark',
+                automaticLayout: true,
+                minimap: { enabled: false },
+                fontSize: 12,
+                lineNumbers: 'on'
+            });
+        }
+    }
+    
+    swapCompareInputs() {
+        if (this.originalEditor && this.compareEditor) {
+            const originalValue = this.originalEditor.getValue();
+            const compareValue = this.compareEditor.getValue();
+            
+            this.originalEditor.setValue(compareValue);
+            this.compareEditor.setValue(originalValue);
+        }
+    }
+    
+    runComparison() {
+        try {
+            const original = JSON.parse(this.originalEditor.getValue());
+            const compare = JSON.parse(this.compareEditor.getValue());
+            
+            const diff = this.compareObjects(original, compare);
+            this.displayComparisonResults(diff);
+            this.closeCompareModal();
+            this.switchView('compare');
+            
+        } catch (error) {
+            this.showNotification('Invalid JSON in one or both editors', 'error');
+        }
+    }
+    
+    compareObjects(obj1, obj2, path = '') {
+        const differences = [];
+        const allKeys = new Set([...Object.keys(obj1 || {}), ...Object.keys(obj2 || {})]);
+        
+        for (const key of allKeys) {
+            const currentPath = path ? `${path}.${key}` : key;
+            const val1 = obj1?.[key];
+            const val2 = obj2?.[key];
+            
+            if (!(key in (obj1 || {}))) {
+                differences.push({ type: 'added', path: currentPath, value: val2 });
+            } else if (!(key in (obj2 || {}))) {
+                differences.push({ type: 'removed', path: currentPath, value: val1 });
+            } else if (typeof val1 === 'object' && typeof val2 === 'object' && val1 !== null && val2 !== null) {
+                differences.push(...this.compareObjects(val1, val2, currentPath));
+            } else if (val1 !== val2) {
+                differences.push({ type: 'modified', path: currentPath, oldValue: val1, newValue: val2 });
+            }
+        }
+        
+        return differences;
+    }
+    
+    displayComparisonResults(differences) {
+        const container = document.getElementById('compareView');
+        
+        if (differences.length === 0) {
+            container.innerHTML = '<div class="compare-results"><p>No differences found. The JSON objects are identical.</p></div>';
+            return;
+        }
+        
+        const stats = {
+            added: differences.filter(d => d.type === 'added').length,
+            removed: differences.filter(d => d.type === 'removed').length,
+            modified: differences.filter(d => d.type === 'modified').length
+        };
+        
+        let html = `
+            <div class="compare-results">
+                <div class="diff-summary">
+                    <h4>Comparison Summary</h4>
+                    <div class="diff-stats">
+                        <div class="diff-stat diff-stat-added">+${stats.added} Added</div>
+                        <div class="diff-stat diff-stat-removed">-${stats.removed} Removed</div>
+                        <div class="diff-stat diff-stat-modified">${stats.modified} Modified</div>
+                    </div>
+                </div>
+                <div class="diff-details">
+        `;
+        
+        differences.forEach(diff => {
+            const className = `diff-${diff.type}`;
+            if (diff.type === 'modified') {
+                html += `
+                    <div class="${className}">
+                        <strong>${diff.path}:</strong> 
+                        <span class="diff-removed">${JSON.stringify(diff.oldValue)}</span> → 
+                        <span class="diff-added">${JSON.stringify(diff.newValue)}</span>
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="${className}">
+                        <strong>${diff.path}:</strong> ${JSON.stringify(diff.value)}
+                    </div>
+                `;
+            }
+        });
+        
+        html += '</div></div>';
+        container.innerHTML = html;
+    }
+    
+    renderCompareView() {
+        const container = document.getElementById('compareView');
+        container.innerHTML = '<div class="compare-results"><p>Use the Compare button to compare two JSON objects.</p></div>';
     }
 
     clearAll() {

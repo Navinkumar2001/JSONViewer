@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JSONView Pro - Smart JSON Visualizer & Converter</title>
+    <title>JSONViewer - Smart JSON Visualizer & Converter</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/editor/editor.main.min.css">
     <link rel="stylesheet" href="styles.css">
@@ -13,7 +13,7 @@
         <!-- Header -->
         <header class="header">
             <div class="logo">
-                <span class="logo-text">JSONView Pro</span>
+                <span class="logo-text">JSONViewer</span>
             </div>
             <div class="search-container">
                 <input type="text" placeholder="Search in JSON..." class="search-input" id="searchInput">
@@ -73,6 +73,7 @@
                             <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
                         </svg>
                     </button>
+                    <button class="btn btn-secondary" id="compareBtn">Compare</button>
                 </div>
                 
                 <div class="json-stats" id="jsonStats"></div>
@@ -89,6 +90,7 @@
                     <button class="view-btn" data-view="table">Table View</button>
                     <button class="view-btn" data-view="raw">Raw Output</button>
                     <button class="view-btn" data-view="schema">Schema</button>
+                    <button class="view-btn" data-view="compare">Compare</button>
                 </div>
 
                 <div class="viewer-container">
@@ -96,6 +98,7 @@
                     <div id="tableView" class="view-content"></div>
                     <div id="rawView" class="view-content"></div>
                     <div id="schemaView" class="view-content"></div>
+                    <div id="compareView" class="view-content"></div>
                 </div>
             </div>
         </main>
@@ -146,6 +149,11 @@
                 Clear All
             </button>
         </div>
+        
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2024 NavinKumar. All rights reserved.</p>
+        </footer>
     </div>
 
     <!-- Upload Modal -->
@@ -212,6 +220,30 @@
                     <label>Minimap</label>
                     <input type="checkbox" id="showMinimap">
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compare Modal -->
+    <div class="modal-overlay" id="compareModal">
+        <div class="modal-content compare-modal">
+            <div class="modal-header">
+                <h3>Compare JSON</h3>
+                <button class="modal-close" id="closeCompare">&times;</button>
+            </div>
+            <div class="compare-container">
+                <div class="compare-panel">
+                    <h4>Original JSON</h4>
+                    <div id="originalEditor"></div>
+                </div>
+                <div class="compare-panel">
+                    <h4>Compare with</h4>
+                    <div id="compareEditor"></div>
+                </div>
+            </div>
+            <div class="compare-actions">
+                <button class="btn btn-primary" id="runCompare">Compare</button>
+                <button class="btn btn-secondary" id="swapCompare">Swap</button>
             </div>
         </div>
     </div>
