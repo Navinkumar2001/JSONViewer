@@ -272,39 +272,38 @@ class JSONViewPro {
     }
 
     loadSampleData() {
-        const sampleJSON = {
-            "user": {
-                "id": 12345,
-                "name": "John Doe",
-                "email": "john.doe@example.com",
-                "active": true,
-                "profile": {
-                    "age": 30,
-                    "location": "San Francisco",
-                    "skills": ["JavaScript", "Python", "React"],
-                    "preferences": {
-                        "theme": "dark",
-                        "notifications": true
-                    }
-                },
-                "orders": [
-                    {
-                        "id": "ORD-001",
-                        "amount": 99.99,
-                        "date": "2025-01-15"
-                    },
-                    {
-                        "id": "ORD-002",
-                        "amount": 149.50,
-                        "date": "2025-01-20"
-                    }
-                ]
+        const resumeJSON = {
+            "personalInfo": {
+                "name": "Navinkumar Palanivel",
+                "email": "navinpersonalid@gmail.com",
+                "location": "Salem, Tamilnadu",
+                "age": 24
+            },
+            "skills": ["JavaScript", "Typescript", "Vue", "HTML", "CSS", "UI/UX Design"],
+            "experience": [
+                {
+                    "position": "Frontend Developer",
+                    "company": "Intellect Design Arena",
+                    "duration": "2023-Present",
+                    "responsibilities": ["Developed web applications", "Worked with Vue.js and TypeScript"]
+                }
+            ],
+            "projects": [
+                {
+                    "name": "JSONView",
+                    "description": "JSON viewer and editor application",
+                    "technologies": ["JavaScript", "Vue", "CSS", "MongoDB"]
+                }
+            ],
+            "preferences": {
+                "theme": "dark",
+                "notifications": true
             }
         };
         
         setTimeout(() => {
             if (this.editor) {
-                this.editor.setValue(JSON.stringify(sampleJSON, null, 2));
+                this.editor.setValue(JSON.stringify(resumeJSON, null, 2));
             }
         }, 500);
     }
